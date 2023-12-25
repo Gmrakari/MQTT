@@ -2,7 +2,7 @@
  * Date:20 April 2023 9:02 PM
  * Filename:mqtt_test.c
 */
-#include "mqtt_test.h"
+#include "../include/mqtt_test.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -72,7 +72,9 @@ int _mqtt_init(void)
     int ret = 0;
     printf("[%s][%d]\r\n", __func__, __LINE__);
 
-    char address[] = "ws://broker.emqx.io:8083";
+    // char address[] = "ws://broker.emqx.io:8083";
+    char address[] = "ws://192.168.26.58:8083";
+
 
     strncpy(s_mqtt_conn_param.sub_topic, "sub_test", sizeof(s_mqtt_conn_param.sub_topic));
     strncpy(s_mqtt_conn_param.pub_topic, "pc_topic", sizeof(s_mqtt_conn_param.pub_topic));
@@ -80,8 +82,8 @@ int _mqtt_init(void)
 
     printf("mqtt start\nclient_id:%s\r\n", s_mqtt_conn_param.client_id);
 
-    conn_opts.username = "test";
-    conn_opts.password = "test";
+    conn_opts.username = "admin";
+    conn_opts.password = "admin";
     printf("[%s][%d]\r\n", __func__, __LINE__);
 
     if((ret = MQTTClient_create(&s_mqtt_conn_param.mq_client, address, s_mqtt_conn_param.client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS) {
