@@ -21,9 +21,13 @@ volatile MQTTClient_deliveryToken deliveredtoken;
 #define MQTT_CLIENT_ID_LEN (24)
 
 typedef struct {
+    char sub[MQTT_SUB_TOPIC_LEN];
+    char pub[MQTT_SUB_TOPIC_LEN];
+} mqtt_topic_t;
+
+typedef struct {
     MQTTClient mq_client;
-    char sub_topic[MQTT_SUB_TOPIC_LEN];
-    char pub_topic[MQTT_PUB_TOPIC_LEN];
+    mqtt_topic_t topic;
     char client_id[MQTT_CLIENT_ID_LEN];
 } mqtt_conn_param_t;
 
@@ -83,7 +87,7 @@ static void test_mqtt_pub(void)
     pubmsg.qos        = QOS;
     pubmsg.retained   = 0;
     int ret;
-    if((ret = MQTTClient_publishMessage(s_mqtt_conn_param.mq_client, s_mqtt_conn_param.pub_topic, &pubmsg, &token)) != MQTTCLIENT_SUCCESS) {
+    if((ret = MQTTClient_publishMessage(s_mqtt_conn_param.mq_client, s_mqtt_conn_param.topic.pub, &pubmsg, &token)) != MQTTCLIENT_SUCCESS) {
         printf("Failed to publish message, return code %d\n", ret);
     }
     printf("[%s][%d]\r\n", __func__, __LINE__);
@@ -101,8 +105,8 @@ int _mqtt_init(void)
     char address[] = "ws://192.168.26.58:8083";
 
 
-    strncpy(s_mqtt_conn_param.sub_topic, "sub_test", sizeof(s_mqtt_conn_param.sub_topic));
-    strncpy(s_mqtt_conn_param.pub_topic, "pc_topic", sizeof(s_mqtt_conn_param.pub_topic));
+    strncpy(s_mqtt_conn_param.topic.sub, "sub_test", sizeof(s_mqtt_conn_param.topic.sub));
+    strncpy(s_mqtt_conn_param.topic.pub, "pc_topic", sizeof(s_mqtt_conn_param.topic.pub));
     strncpy(s_mqtt_conn_param.client_id, "send_client_1", sizeof(s_mqtt_conn_param.client_id));
 
     printf("mqtt start\nclient_id:%s\r\n", s_mqtt_conn_param.client_id);
@@ -135,8 +139,8 @@ int _mqtt_init(void)
     }
     printf("[%s][%d]\r\n", __func__, __LINE__);
 
-    printf("subtopic:%s\n", s_mqtt_conn_param.sub_topic);
-    if((ret = MQTTClient_subscribe(s_mqtt_conn_param.mq_client, s_mqtt_conn_param.sub_topic, QOS)) != MQTTCLIENT_SUCCESS) {
+    printf("subtopic:%s\n", s_mqtt_conn_param.topic.sub);
+    if((ret = MQTTClient_subscribe(s_mqtt_conn_param.mq_client, s_mqtt_conn_param.topic.sub, QOS)) != MQTTCLIENT_SUCCESS) {
         printf("Failed to subscribe, return code %d\n", ret);
         ret = -1;
     }
@@ -152,7 +156,7 @@ int _mqtt_deinit(void)
 {
     printf("[%s][%d]\r\n", __func__, __LINE__);
     int ret = 0;
-    if((ret = MQTTClient_unsubscribe(s_mqtt_conn_param.mq_client, s_mqtt_conn_param.sub_topic)) != MQTTCLIENT_SUCCESS) {
+    if((ret = MQTTClient_unsubscribe(s_mqtt_conn_param.mq_client, s_mqtt_conn_param.topic.sub)) != MQTTCLIENT_SUCCESS) {
         printf("Failed to unsubscribe, return code %d\n", ret);
         ret = -1;
     }
@@ -181,11 +185,6 @@ static void pubClient(void *arg) {
 
 int mqtt_app_init() { LOG_DEBUG();
     int u32Ret = 0;
-    signal(SIGINT, on_signal);
-    signal(SIGTERM, on_signal);
-
-    private.exit_flag = 0;
-
     int (*client_func_arr[])() = {subClient, pubClient};
 
     if (0 != (u32Ret = pthread_mutex_init(&private.lock, NULL))) {
@@ -219,4 +218,27 @@ int mqtt_app_deinit() {
 int mqtt_app_get_conn_status(MQTTClient handle, MQTTClient_connectOptions opts) {
     int rc = 0;
     return rc = MQTTClient_connect(handle, &opts);
+}
+
+static void init_signal(int flag) {
+    private.exit_flag = flag;
+    signal(SIGINT, on_signal);
+    signal(SIGTERM, on_signal);
+}
+
+void mqtt_app_start(void) {
+
+    // mqtt_app_init();
+    init_signal(0);
+
+LOG_DEBUG();
+    while (!private.exit_flag) {
+
+        sleep(1);
+        LOG_DEBUG();
+
+    }
+LOG_DEBUG();
+    
+    return ;
 }

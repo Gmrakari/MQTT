@@ -64,5 +64,6 @@ int mqtt_app_get_conn_status(MQTTClient handle, MQTTClient_connectOptions opts);
 
 int mqtt_app_client_publish(mqtt_client_info_t *info);
 
+void mqtt_app_start(void);
 
 #endif // MQTT_APP_H
