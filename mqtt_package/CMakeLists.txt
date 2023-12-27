@@ -1,20 +1,21 @@
-cmake_minimum_required(VERSION 3.10)
+# mqtt_package/CMakeLists.txt
+add_library(mqtt_package STATIC
+  include/mqtt_app.h
+  include/mqtt_utils.h
+  src/mqtt_app.c
+)
+target_include_directories(mqtt_package PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include> 
+)
 
-project(mqtt_package VERSION 1.0)
+# 设置输出的库文件名(可选)
+set_target_properties(mqtt_package PROPERTIES
+  OUTPUT_NAME mqtt_pkg
+)
 
-set(CMAKE_C_STANDARD 99)
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-file(GLOB SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
-
-add_library(mqtt_package ${SOURCES})
-
-target_link_directories(mqtt_package PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/paho_mqtt_c/lib)
-
-list(APPEND ADD_DYNAMIC_LIB "libpaho-mqtt3a.so"
-                            "libpaho-mqtt3c.so")
-
-target_link_libraries(mqtt_package PRIVATE ${ADD_DYNAMIC_LIB})
-
-target_compile_options(mqtt_package PRIVATE -Wall -Wextra -pedantic)
+# 定义输出文件位置(可选)
+set_target_properties(mqtt_package PROPERTIES 
+  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib 
+  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+)

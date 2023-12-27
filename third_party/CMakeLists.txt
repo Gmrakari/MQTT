@@ -1,11 +1,21 @@
+# third_patty/CMakeLists.txt
 
-list(APPEND ADD_INCLUDE "paho_mqtt_c/include")
+# cJSON
+add_library(cJSON STATIC 
+  cJSON/src/cJSON.c
+)  
 
-list(APPEND ADD_DYNAMIC_LIB "libpaho-mqtt3a.so"
-                            "libpaho-mqtt3a.so.1"
-                            "libpaho-mqtt3a.so.1.3.11"
-                            "libpaho-mqtt3c.so"
-                            "libpaho-mqtt3c.so.1"
-                            "libpaho-mqtt3c.so.1.3.11")
+target_include_directories(cJSON
+  PUBLIC cJSON/include
+)
 
-list(APPEND ADD_DEFINITIONS -fPIC)
+# paho-mqtt3c
+add_library(paho-mqtt3c SHARED IMPORTED GLOBAL)
+set_target_properties(paho-mqtt3c PROPERTIES
+    IMPORTED_LOCATION
+      ${CMAKE_CURRENT_SOURCE_DIR}/paho_mqtt_c/lib/libpaho-mqtt3c.so
+)
+
+target_include_directories(paho-mqtt3c
+    INTERFACE paho_mqtt_c/include
+)

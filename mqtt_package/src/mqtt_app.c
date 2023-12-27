@@ -1,13 +1,18 @@
 /*
  * Date:20 April 2023 9:02 PM
- * Filename:mqtt_test.c
+ * Filename:mqtt_app.c
 */
-#include "../include/mqtt_test.h"
+#include "../include/mqtt_app.h"
+
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
+#include <error.h>      // errno
 
-#define QOS 0
-#define TIMEOUT 1000L
+#include <unistd.h>     // sleep
+
+#include <stdbool.h>    // bool
+#include <signal.h>     // signal
 
 volatile MQTTClient_deliveryToken deliveredtoken;
 
@@ -23,6 +28,26 @@ typedef struct {
 } mqtt_conn_param_t;
 
 static mqtt_conn_param_t s_mqtt_conn_param = {0};
+
+typedef struct {
+    pthread_t threads[NUM_THREADS];
+    pthread_mutex_t lock;
+    mqtt_client_info_t mq_client_info[2];
+    mqtt_buff_t send_list[MQTT_BUFFLIST_SIZE];
+    mqtt_buff_t recv_list[MQTT_BUFFLIST_SIZE];
+    mqtt_cb_t recv_cb_without_rsp;              // 非响应消息的接收回调函数
+    bool exit_flag;
+} private_t;
+
+static private_t private;
+
+void on_signal(int signo)
+{
+  if (SIGINT == signo || SIGTSTP == signo || SIGTERM == signo || SIGQUIT == signo || SIGPIPE == signo || SIGKILL == signo)
+  {
+    private.exit_flag = 1;
+  }
+}
 
 void delivered(void * context, MQTTClient_deliveryToken dt)
 {
@@ -139,4 +164,59 @@ int _mqtt_deinit(void)
     MQTTClient_destroy(&s_mqtt_conn_param.mq_client);
     printf("[%s][%d]\r\n", __func__, __LINE__);
     return ret;
+}
+
+static void subClient(void *arg) {
+    long tid = (long)arg;
+
+    printf("tid: %ld\r\n", tid);
+    return ;
+}
+
+static void pubClient(void *arg) {
+    long tid = (long)arg;
+    printf("tid: %ld\r\n", tid);
+    return ;
+}
+
+int mqtt_app_init() { LOG_DEBUG();
+    int u32Ret = 0;
+    signal(SIGINT, on_signal);
+    signal(SIGTERM, on_signal);
+
+    private.exit_flag = 0;
+
+    int (*client_func_arr[])() = {subClient, pubClient};
+
+    if (0 != (u32Ret = pthread_mutex_init(&private.lock, NULL))) {
+        LOG_ERROR("pthread mutex init err:%s", strerror(errno));
+    }
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        if (0 != (u32Ret = pthread_create(&private.threads[i], NULL, client_func_arr[i], (void *)i))) {
+            LOG_ERROR("pthread create err:%s", strerror(errno));
+            return u32Ret;
+        }
+    }
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        if (0 != (u32Ret = pthread_detach(&private.threads[i]))) {
+            LOG_ERROR("pthread detach err:%s", strerror(errno));
+            return u32Ret;
+        }
+    }
+
+    pthread_exit(NULL);
+    
+    return 0;
+}
+
+int mqtt_app_deinit() {
+    
+    return 0;
+}
+
+int mqtt_app_get_conn_status(MQTTClient handle, MQTTClient_connectOptions opts) {
+    int rc = 0;
+    return rc = MQTTClient_connect(handle, &opts);
 }
